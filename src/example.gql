@@ -1,0 +1,120 @@
+scalar MongoID
+
+
+input PetCreateWithoutUserInput {
+    connect : UserWhereUniqueInput
+    create : PetDataInput
+}
+
+
+
+
+type User {
+    _id: MongoID email: String
+    phoneNumber: String
+    name: String
+    age: Int
+    pets: [Pet]!
+
+}
+
+input UserDataInput{
+    email: String!
+    phoneNumber: String!
+    name: String!
+    age: Int
+    pets: [PetCreateWithoutUserInput]!
+
+}
+
+input UserWhereInput{
+    _id: MongoID email: String
+    phoneNumber: String
+    name: String
+    age: Int
+    pets: PetWhereInput
+}
+
+input UserWhereUniqueInput{
+    _id: MongoID email: String
+
+}
+
+
+
+input UserCreateWithoutPetInput {
+    connect : PetWhereUniqueInput
+    create : UserDataInput
+}
+
+
+
+
+type Pet {
+    _id: MongoID name: String
+    age: Int
+    user: User
+
+}
+
+input PetDataInput{
+    name: String!
+    age: Int
+    user: UserCreateWithoutPetInput
+
+}
+
+input PetWhereInput{
+    _id: MongoID name: String
+    age: Int
+    user: UserWhereInput
+}
+
+input PetWhereUniqueInput{
+    _id: MongoID
+}
+
+
+
+input UserCreateWithoutHomeInput {
+    connect : HomeWhereUniqueInput
+    create : UserDataInput
+}
+
+
+input PetCreateWithoutHomeInput {
+    connect : HomeWhereUniqueInput
+    create : PetDataInput
+}
+
+
+
+
+type Home {
+    _id: MongoID address: String
+    office_box: String
+    user: User
+    pets: [Pet]!
+
+}
+
+input HomeDataInput{
+    address: String
+    office_box: String!
+    user: UserCreateWithoutHomeInput!
+    pets: [PetCreateWithoutHomeInput]!
+
+}
+
+input HomeWhereInput{
+    _id: MongoID address: String
+    office_box: String
+    user: UserWhereInput pets: PetWhereInput
+}
+
+input HomeWhereUniqueInput{
+    _id: MongoID office_box: String
+
+}
+
+

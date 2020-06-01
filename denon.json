@@ -1,0 +1,18 @@
+{
+  "env": {
+    "TOKEN" : "Super secret token"
+  },
+  "$schema": "https://deno.land/x/denon/schema.json",
+  "scripts": {
+    "start": "./src/server.ts"
+  },
+  "desc": "A graphql challenge with deno",
+  "allow": [
+    "env",
+    "net",
+    "write",
+    "read",
+    "plugin"
+  ],
+  "unstable": true
+}
