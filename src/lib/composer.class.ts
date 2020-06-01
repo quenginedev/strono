@@ -60,7 +60,7 @@ class Composer {
 
         })
 
-        this.generateCompositions()
+        this.setupCompositions()
         let query = ''
         let mutation = ''
         Object.keys(this.Composition).forEach(c_name=>{
@@ -97,7 +97,7 @@ type Mutation {
     }
 
 
-    private generateCompositions(){
+    private setupCompositions(){
         Object.keys(this.Schema).forEach(schema_name=>{
             let fields = this.Schema[schema_name].fields
             this.Composition[schema_name] = {}
