@@ -6,8 +6,8 @@ inside the directory of the project, run:
 Happy Graphing :)
 
 Todo: 
-1. Create Compositions
-2. Create Basic TypeDefs
+1. ~~Create Compositions~~
+2. ~~Create Basic TypeDefs~~
 3. Create Basic Resolvers
 4. Create Filters TypeDefs And Resolver
 5. A lot more stuff 
