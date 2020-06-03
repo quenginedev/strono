@@ -3,7 +3,7 @@
 inside the directory of the project, run:
 `deno run --allow-env --allow-net --allow-write --allow-read --allow-plugin --unstable ./src/server.ts`
 
-Happy Graphing :)
+Sadly working on letting the Strono built schema work in the oak_graphql server  
 
 Todo: 
 1. ~~Create Compositions~~

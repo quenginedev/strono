@@ -12,9 +12,6 @@ let dbOptions = {
 }
 
 let strono = new Strono(schemas, StronoMongo, dbOptions)
-let {resolvers, typeDefs} = strono.build()
-console.log({resolvers, typeDefs}, 'hello')
-//
 // const GraphQLService = await applyGraphQL({
 //     path: '/',
 //     resolvers,
