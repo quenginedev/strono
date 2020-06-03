@@ -5,7 +5,6 @@ import {
     GraphQLInputType
 }  from "../import/index.ts";
 
-// import {MongoClient} from '../import'
 
 
 interface SchemaType {
@@ -42,24 +41,14 @@ class Composer {
     init(){
 
         // Creating a mongo ID Scalar type
-        this.addToTypeDefs('scalar MongoID scalar MongoInputID')
-        this.resolvers.MongoID = new GraphQLScalarType({
-            name: "MongoID",
-            description: "MongoDB ID",
-            serialize: (value: { $oid: string }) =>{
-                if(!isObject(value)) return null
-                return value.$oid
-            },
-            parseValue: (value: string) =>{
-                if (/^[0-9a-fA-F]{24}$/.test(value)){
-                    return { $oid: value }
-                }else{
-                    return null
-                }
-            }
+        this.addToTypeDefs(`
+scalar MongoID
+scalar AND
+scalar NOT
+scalar OR
+`)
 
-        })
-
+        this.setupScalars()
         this.setupCompositions()
         let query = ''
         let mutation = ''
@@ -69,8 +58,8 @@ class Composer {
             this.generateResolver(c_name,  composition)
             query += 
 `
-    ${camelCase(c_name)} (where: ${c_name}WhereUniqueInput!) :${c_name}
-    ${camelCase(c_name)}Many (where: ${c_name}WhereInput) : [${c_name}]
+    ${c_name} (where: ${c_name}WhereUniqueInput!) :${c_name}
+    ${c_name}Many (where: ${c_name}WhereInput) : [${c_name}]
 `
             mutation += 
 `
@@ -88,7 +77,46 @@ type Mutation {
 }
         `)
     }
-    
+
+    setupScalars(){
+        this.resolvers.MongoID = new GraphQLScalarType({
+            name: "MongoID",
+            description: "MongoDB ID",
+            serialize: (value: { $oid: string }) =>{
+                if(!isObject(value)) return null
+                return value.$oid
+            },
+            parseValue: (value: string) =>{
+                if (/^[0-9a-fA-F]{24}$/.test(value)){
+                    return { $oid: value }
+                }else{
+                    return null
+                }
+            }
+        })
+        this.resolvers.AND = new GraphQLScalarType({
+            name: "AND",
+            description: "Logical AND on filters",
+            parseValue: (value: string) =>{
+                return { $and: value }
+            }
+        })
+        this.resolvers.NOT = new GraphQLScalarType({
+            name: "NOT",
+            description: "Logical NOT on filters",
+            parseValue: (value: string) =>{
+                return { $ne: value }
+            }
+        })
+        this.resolvers.OR = new GraphQLScalarType({
+            name: "OR",
+            description: "Logical OR on filters",
+            parseValue: (value: string) =>{
+                return { $or: value }
+            }
+        })
+
+    }
     
     addManySchema(schemas: SchemaType[]){
         schemas.forEach(schema => {
@@ -136,8 +164,7 @@ type Mutation {
             let output = field.type
 
             if (field.unique) {
-                c_where_unique_input += `
-    ${f_name}: ${type}
+                c_where_unique_input += `${f_name}: ${type}
     `
             }
 
@@ -148,7 +175,9 @@ type Mutation {
 }`)
 
                 links.push(composition[f_name].type)
-                c_where_input += `${f_name}: ${type}WhereInput 
+                c_where_input += `
+                AND
+                ${f_name}: ${type}WhereInput 
     `
                 type = `${composition[f_name].type}Without${c_name}Input`
             }else{
@@ -157,15 +186,13 @@ type Mutation {
             }
 
             
-
-            
             if (field.required) {
                 type += '!'
             }
 
             if (field.many) {
-                type = `[${type}]!`
-                output = `[${output}]!`
+                type = `[${type}]`
+                output = `[${output}!]!`
             }
 
             c_data_input += `${f_name}: ${type} 
@@ -210,12 +237,12 @@ input ${c_name}${link}CreateInput{
     }
 
     private generateResolver(name: string, composition: CompositionField){
-        this.resolvers.Query[`${camelCase(name)}Many`] = (parent: any, args: any, context: any, info: any)=>{
-            console.log({args})
-            return [{
-                _id: {$oid: objectId()}
-            }]
-        }
+        let dbResolver = new MongoResolverGenerator(name, composition, this.db)
+        let {Custom, Query, Mutation} = dbResolver.buildResolvers()
+        console.log({Custom})
+        this.resolvers = {...this.resolvers, ...Custom}
+        this.resolvers.Query = {...this.resolvers.Query, ...Query}
+        this.resolvers.Mutation = {...this.resolvers.Mutation, ...Mutation}
     }
 
     createComposition(field: any, composition: CompositionField){
@@ -247,10 +274,11 @@ input ${c_name}${link}CreateInput{
             typeDefs: this.typeDefs,
             resolvers: this.resolvers
         }
-        console.log(this.Composition,this.typeDefs);
-        
-        return build
+        // console.log(this.Composition,this.typeDefs);
+        console.log(this.resolvers)
 
+
+        return build
     }
 
     private addToTypeDefs(typeDef: string){

@@ -1,9 +1,9 @@
-scalar MongoID
+scalar MongoID scalar MongoInputID
 
 
-input PetCreateWithoutUserInput {
-    connect : UserWhereUniqueInput
-    create : PetDataInput
+input PetWithoutUserInput {
+    connect : UserPetConnectInput
+    create : UserPetCreateInput
 }
 
 
@@ -23,7 +23,7 @@ input UserDataInput{
     phoneNumber: String!
     name: String!
     age: Int
-    pets: [PetCreateWithoutUserInput]!
+    pets: [PetWithoutUserInput]!
 
 }
 
@@ -33,18 +33,38 @@ input UserWhereInput{
     name: String
     age: Int
     pets: PetWhereInput
+
 }
 
 input UserWhereUniqueInput{
-    _id: MongoID email: String
+    _id: MongoID
+    email: String
 
 }
 
 
 
-input UserCreateWithoutPetInput {
-    connect : PetWhereUniqueInput
-    create : UserDataInput
+
+input UserPetConnectInput{
+    _id: MongoID
+    email: String
+
+}
+
+input UserPetCreateInput{
+    email: String!
+    phoneNumber: String!
+    name: String!
+    age: Int
+    pets: [PetWithoutUserInput]!
+
+}
+
+
+
+input UserWithoutPetInput {
+    connect : PetUserConnectInput
+    create : PetUserCreateInput
 }
 
 
@@ -60,7 +80,7 @@ type Pet {
 input PetDataInput{
     name: String!
     age: Int
-    user: UserCreateWithoutPetInput
+    user: UserWithoutPetInput
 
 }
 
@@ -68,6 +88,7 @@ input PetWhereInput{
     _id: MongoID name: String
     age: Int
     user: UserWhereInput
+
 }
 
 input PetWhereUniqueInput{
@@ -76,15 +97,29 @@ input PetWhereUniqueInput{
 
 
 
-input UserCreateWithoutHomeInput {
-    connect : HomeWhereUniqueInput
-    create : UserDataInput
+
+input PetUserConnectInput{
+    _id: MongoID
+}
+
+input PetUserCreateInput{
+    name: String!
+    age: Int
+    user: UserWithoutPetInput
+
 }
 
 
-input PetCreateWithoutHomeInput {
-    connect : HomeWhereUniqueInput
-    create : PetDataInput
+
+input UserWithoutHomeInput {
+    connect : HomeUserConnectInput
+    create : HomeUserCreateInput
+}
+
+
+input PetWithoutHomeInput {
+    connect : HomePetConnectInput
+    create : HomePetCreateInput
 }
 
 
@@ -101,20 +136,82 @@ type Home {
 input HomeDataInput{
     address: String
     office_box: String!
-    user: UserCreateWithoutHomeInput!
-    pets: [PetCreateWithoutHomeInput]!
+    user: UserWithoutHomeInput!
+    pets: [PetWithoutHomeInput]!
 
 }
 
 input HomeWhereInput{
     _id: MongoID address: String
     office_box: String
-    user: UserWhereInput pets: PetWhereInput
+    user: UserWhereInput
+    pets: PetWhereInput
+
 }
 
 input HomeWhereUniqueInput{
-    _id: MongoID office_box: String
+    _id: MongoID
+    office_box: String
 
 }
 
+
+
+
+input HomeUserConnectInput{
+    _id: MongoID
+    office_box: String
+
+}
+
+input HomeUserCreateInput{
+    address: String
+    office_box: String!
+    user: UserWithoutHomeInput!
+    pets: [PetWithoutHomeInput]!
+
+}
+
+
+
+
+input HomePetConnectInput{
+    _id: MongoID
+    office_box: String
+
+}
+
+input HomePetCreateInput{
+    address: String
+    office_box: String!
+    user: UserWithoutHomeInput!
+    pets: [PetWithoutHomeInput]!
+
+}
+
+
+
+
+type Query {
+
+    user (where: UserWhereUniqueInput!) :User
+    userMany (where: UserWhereInput) : [User]
+
+    pet (where: PetWhereUniqueInput!) :Pet
+    petMany (where: PetWhereInput) : [Pet]
+
+    home (where: HomeWhereUniqueInput!) :Home
+    homeMany (where: HomeWhereInput) : [Home]
+
+}
+
+type Mutation {
+
+    createUser (data: UserDataInput!): User
+
+    createPet (data: PetDataInput!): Pet
+
+    createHome (data: HomeDataInput!): Home
+
+}
 

@@ -3,10 +3,10 @@ export default class MongoResolverGenerator{
     
     private compositions : any
     private client : any
-    private resolvers: any = {}
+    private name: string
 
-
-    constructor(compositions: any, mongoClient: any){
+    constructor(name: string, compositions: any, mongoClient: any){
+        this.name = name
         this.compositions = Object.keys(compositions).map(composition_name=>{
             return {
                 name: composition_name,
@@ -14,9 +14,10 @@ export default class MongoResolverGenerator{
             }
         }) 
         this.client = mongoClient
+
     }
 
-    private getRelationsReolvers(){
+    private buildRelationResolvers(){
         
     }
 
@@ -33,16 +34,20 @@ export default class MongoResolverGenerator{
     remove(composition_name: string, where: {} = {}){}
 
     buildResolvers(){
-        this.resolvers.Query = {}
-        this.resolvers.Mutation = {}
-        this.compositions.forEach((composition: any)=>{
+        let Custom:any = {}
+        let Query: any = {}
+        let Mutation:any = {}
 
-            this.resolvers.Query[composition.name] = async (parent: any, args: any, ctx: any, info: any)=>{
+        Query[`${this.name}Many`] = async (parent: any, args: any, ctx: any, info: any)=>{
+            try {
                 let user = this.client.collection('users')
                 return await user.find()
+            }catch (e) {
+                console.log(e)
             }
 
-        })
-        return this.resolvers
+        }
+
+        return {Custom, Query, Mutation}
     }
 }
