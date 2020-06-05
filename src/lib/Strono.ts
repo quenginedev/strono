@@ -68,7 +68,7 @@ export default class Strono {
             })
             this.compositions.push({
                 name: composition_name,
-                field: composition_field
+                fields: composition_field
             })
         })
     }

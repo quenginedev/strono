@@ -1,12 +1,12 @@
 import StronoDbResolver from "./StronoDbResolver.ts";
-import {Composition, CompositionField, Resolver, StronoSchemaField} from "./interfaces.ts";
+import {Composition, CompositionField,  StronoSchemaField} from "./interfaces.ts";
 import {
     MongoClient,
     GraphQLObjectType,
     GraphQLNonNull,
     GraphQLType,
     GraphQLList,
-    GraphQLString, GraphQLInt, GraphQLFloat
+    GraphQLString, GraphQLInt, GraphQLFloat, GraphQLSchema
 } from '../import/index.ts'
 import {camelCase, capitalize, isObject} from "./utils.ts";
 
@@ -40,7 +40,7 @@ export default class StronoMongo extends StronoDbResolver{
 
     async findMany(collection_name: string, where: any[]){
         let collection = this.db.collection(collection_name)
-        return collection.findMany(where)
+        return collection.find(where)
     }
 
 
@@ -74,7 +74,7 @@ export default class StronoMongo extends StronoDbResolver{
 
     init() {
         this.createScalarType({
-            name: 'MongoID',
+            name: 'ID',
             serialize: (value: { $oid: string }) =>{
                 if(!isObject(value)) return null
                 return value.$oid
@@ -87,65 +87,57 @@ export default class StronoMongo extends StronoDbResolver{
                 }
             }
         })
+        this.createCompositionTypes()
+        this.createRootQueries()
+    }
+
+    createCompositionTypes(){
+        this.compositions.forEach((composition: Composition)=>{
+            //createType
+            this.createType(composition.name, composition, {
+                single: async (parent: any, args: any, field: CompositionField) => {
+                    let where = parent[field.name]
+                    return await this.findOne(field.type, where)
+                },
+                many: async (parent: any, args: any, field: CompositionField) => {
+                    let where = parent[field.name]
+                    return await this.findMany(field.type, where)
+                }
+            })
+
+            //createWhereInput
+            this.createInputType(`${composition.name}Input`, composition, {id: true})
+
+            //createWhereInput
+            this.createInputType(`${composition.name}WhereInput`, composition, {id: true})
+        })
+    }
+
+    createRootQueries(){
+        let queries: any = {}
 
         this.compositions.forEach(composition=>{
-            this.createFindOneType(
-                composition.name,
-                composition,
-                async (parent: any, args: any) => await this.findOne(composition.name, args)
-            )
+            queries[`${composition.name}One`] = {
+                type: this.getType(composition.name),
+                args: { where: { type: this.getInputType(`${composition.name}Input`) } },
+                resolve: (parent: any, args: any)=>{
+                    return this.findOne(composition.name, args.where)
+                }
+            }
 
-            this.RootQuery[composition.name] = this.Types[composition.name]
+            queries[`${composition.name}Many`] = {
+                type: GraphQLList(this.getType(composition.name)) ,
+                args: { where: { type: this.getInputType(`${composition.name}Input`) } },
+                resolve: (parent: any, args: any)=>{
+                    return this.findMany(composition.name, args.where)
+                }
+            }
         })
-    }
 
-    createInputType(composition: Composition, resolver: any = (parent: any, args: any)=>{}): void{
-
-    }
-
-    createInputWhereType(composition: Composition, resolver: any = (parent: any, args: any)=>{}): void{
-
-    }
-
-    createFindOneType(name: string, composition: Composition, resolver: any = (parent: any, args: any)=>{}){
-        this.Types[name] = new GraphQLObjectType({
-            name: name,
-            fields: () => {
-                console.log('hello field')
-                let fields: any = {}
-                composition.field.forEach( field =>{
-                    let type: any = this.getType(field)
-                    if (field.link){
-                        if (field.many){
-                            let relName = `${composition.name}${capitalize(field.name)}`
-                            this.CustomTypes[relName] = GraphQLList(this.getType(field))
-                            type = this.CustomTypes[relName]
-                        }else{
-                            let relName = `${composition.name}${capitalize(field.name)}`
-                            this.CustomTypes[relName] = this.getType(field)
-                            type = this.CustomTypes[relName]
-                        }
-                        type = this.getType({
-                            type: 'String',
-                            name: 'asda',
-                            many: false,
-                            required: false,
-                            link: false,
-                            unique: false
-                        })
-                    }
-                    if(field.required) type = GraphQLNonNull(type)
-                    if (field.many) type = GraphQLList(type)
-                    fields[field.name] = { type }
-                })
-                return fields
-            },
-            resolve: resolver
+        this.RootQuery = new GraphQLObjectType({
+            name: 'Query',
+            fields: ()=>queries
         })
+        
     }
-
-    getType(field: CompositionField){
-        return this.Types[field.type]
-    }
-
 }

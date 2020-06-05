@@ -7,11 +7,14 @@ import {
     GraphQLInt,
     GraphQLBoolean,
     GraphQLScalarType,
-    GraphQLInputType,
+    GraphQLOutputType,
     GraphQLObjectType,
     GraphQLSchema,
     GraphQLList,
     GraphQLNonNull,
+    GraphQLInputObjectType,
+    GraphQLID
+
   } from 'https://raw.githubusercontent.com/adelsz/graphql-deno/v15.0.0/mod.ts'
 
 
@@ -25,9 +28,11 @@ export {
     GraphQLInt,
     GraphQLBoolean,
     GraphQLScalarType,
-    GraphQLInputType,
+    GraphQLInputObjectType,
+    GraphQLOutputType,
     GraphQLObjectType,
     GraphQLSchema,
     GraphQLList,
     GraphQLNonNull,
+    GraphQLID
 }

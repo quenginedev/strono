@@ -1,3 +1,5 @@
+import {GraphQLInt, GraphQLObjectType, GraphQLString, GraphQLList} from "../import/index.ts";
+
 interface StronoSchemaObjectField {
     type?: string | string[],
     required?: boolean,
@@ -16,7 +18,7 @@ export interface StronoSchema {
 
 export interface Composition {
     name: string,
-    field: CompositionField[]
+    fields: CompositionField[]
 }
 
 export interface CompositionField {
@@ -28,12 +30,16 @@ export interface CompositionField {
     link: boolean
 }
 
-export interface Resolver {
-    [key: string]: any,
-    Query: {
-        [key: string]: any,
+export interface GQLType {
+    [key: string]: {
+        type: GraphQLObjectType | GraphQLString | GraphQLInt | GraphQLList
     },
-    Mutation: {
-        [key: string]: any,
-    }
+}
+export interface GQLInputType {
+    [key: string]: {
+        type: GraphQLObjectType | GraphQLString | GraphQLInt | GraphQLList
+        args?: {
+            [key: string] : any
+        }
+    },
 }
