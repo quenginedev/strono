@@ -35,6 +35,7 @@ export default class StronoDbResolver {
     }
 
     RootQuery: any = {}
+    RootMutation: any = {}
 
     constructor(compositions: Composition[]) {
         this.compositions = compositions
@@ -46,6 +47,10 @@ export default class StronoDbResolver {
 
     getInputType(field: string){
         return this.InputTypes[field]
+    }
+
+    createIndexes(collection_name: string,  fields: string[]){
+
     }
 
     createScalarType(type: {
@@ -74,7 +79,6 @@ export default class StronoDbResolver {
                 } = {
                     _id: {type: this.getType('ID')}
                 }
-
                 composition.fields.forEach((field: CompositionField) => {
                     let type = this.getType(field.type)
                     type = field.many ? GraphQLList(type) : type
@@ -99,34 +103,50 @@ export default class StronoDbResolver {
     }
 
     createInputType(name: string, composition: Composition,  checks: {
+        postfix?: string,
         id?: boolean,
-        unique?: boolean,
+        unique?: (collection_name: string, fields: string[])=>void,
         required?: boolean,
     } = {
+        postfix: '',
         id: false,
-        unique: false,
+        unique: ()=>{},
         required: false,
     }){
-        this.InputTypes[name] = new GraphQLInputObjectType({
-            name,
-            description: `${name}`,
+        
+        this.InputTypes[`${name}${checks.postfix}`] = new GraphQLInputObjectType({
+            name: `${name}${checks.postfix}`,
+            description: `${name}${checks.postfix}`,
             fields: () => {
+                let unique_fields: string[] = []
                 let result: {
                     [name: string] : { type: any, resolve?:  (parent?: any, args?: any)=>{} }
                 } =  checks.id ? {} : { _id: { type: this.getInputType('ID') } }
 
                 composition.fields.forEach((field: CompositionField) => {
+
                     let type = field.link ?  
-                        this.getInputType(`${field.type}Input`) :  
+                        this.getInputType(`${field.type}${checks.postfix}`) :  
                         this.getInputType(field.type)  
                     
                     if(checks.required && field.required){
                         type = GraphQLNonNull(type)
                     }
-                    
+
+                    if(field.many){
+                        type = GraphQLList(type)
+                    }
+
+                    if(checks.unique && field.unique){
+                        unique_fields.push(field.name)
+                    }
                     result[field.name] = { type } 
                     
                 })
+                // create unique indexes
+                if(checks.unique)
+                    checks.unique(composition.name, unique_fields)
+
                 return result
             }
         })
@@ -184,7 +204,8 @@ export default class StronoDbResolver {
         //             }
         //         }
         //     })
-            query: this.RootQuery
+            query: this.RootQuery,
+            mutation: this.RootMutation
         })
         return build
     }

@@ -6,7 +6,7 @@ import {
     GraphQLNonNull,
     GraphQLType,
     GraphQLList,
-    GraphQLString, GraphQLInt, GraphQLFloat, GraphQLSchema
+    GraphQLString, GraphQLInt, GraphQLFloat, GraphQLSchema, GraphQLInputObjectType
 } from '../import/index.ts'
 import {camelCase, capitalize, isObject} from "./utils.ts";
 
@@ -25,51 +25,70 @@ export default class StronoMongo extends StronoDbResolver{
 
     async createOne(collection_name: string, data: any){
         let collection = this.db.collection(collection_name)
-        return await collection.insertOne(data)
+        let $oid = await collection.insertOne(data).catch((err: any)=>{
+            throw {error: err}
+        })
+        return await this.findOne(collection_name, { _id: $oid})
     }
 
     async createMany(collection_name: string, data: any[]){
         let collection = this.db.collection(collection_name)
-        return await collection.insertMany(data)
+        return await collection.insertMany(data).catch((err: any)=>{
+            throw {error: err}
+        })
     }
 
     async findOne(collection_name: string, where: any){
         let collection = this.db.collection(collection_name)
-        return collection.findOne(where)
+        return collection.findOne(where).catch((err: any)=>{
+            throw {error: err}
+        })
     }
 
     async findMany(collection_name: string, where: any[]){
         let collection = this.db.collection(collection_name)
-        return collection.find(where)
+        return collection.find(where).catch((err: any)=>{
+            throw {error: err}
+        })
     }
 
 
     async updateOne(collection_name: string, where: any, data: any){
         let collection = this.db.collection(collection_name)
         await collection.updateOne(where, data)
-        return collection.findOne(where)
+        return collection.findOne(where).catch((err: any)=>{
+            throw {error: err}
+        })
     }
 
     async updateMany(collection_name: string, where: any, data: any){
         let collection = this.db.collection(collection_name)
-        let { matchedCount } = await collection.updateMany(where, data)
+        let { matchedCount } = await collection.updateMany(where, data).catch((err: any)=>{
+            throw {error: err}
+        })
         return { count : matchedCount }
     }
 
     async  deleteOne(collection_name: string, where: any){
         let collection = this.db.collection(collection_name)
-        return collection.deleteOne(where)
+        return collection.deleteOne(where).catch((err: any)=>{
+            throw {error: err}
+        })
     }
 
     async  deleteMany(collection_name: string, where: any){
         let collection = this.db.collection(collection_name)
-        return collection.deleteMany(where)
+        return collection.deleteMany(where).catch((err: any)=>{
+            throw {error: err}
+        })
     }
 
 
     async count(collection_name: string, where: any){
         let collection = this.db.collection(collection_name)
-        return collection.count(where)
+        return collection.count(where).catch((err: any)=>{
+            throw {error: err}
+        })
     }
 
     init() {
@@ -106,20 +125,42 @@ export default class StronoMongo extends StronoDbResolver{
             })
 
             //createWhereInput
-            this.createInputType(`${composition.name}Input`, composition, {id: true})
+            this.createInputType(`${composition.name}`, composition, {
+                id: true, 
+                required: true, 
+                postfix: 'Input',
+                unique: (collection_name: string, fields: string[]) => {
+                    let collection = this.db.collection(collection_name)
+                    let keyed_fields: {[field_name: string]: boolean} = {}
+                    fields.forEach((field: string)=>{
+                        keyed_fields[field] = true
+                    })
+                    // collection.createIndexes([{
+                    //     keys: keyed_fields,
+                    //     options: {
+                    //         unique: true
+                    //     }
+                    // }]).catch((err: any)=>{
+
+                    //     console.error(err)
+                    // })
+                }
+            })
 
             //createWhereInput
-            this.createInputType(`${composition.name}WhereInput`, composition, {id: true})
+            this.createInputType(`${composition.name}`, composition, {id: true, postfix: 'WhereInput'})
         })
     }
 
     createRootQueries(){
         let queries: any = {}
+        let mutations: any = {}
 
         this.compositions.forEach(composition=>{
-            queries[`${composition.name}One`] = {
+            let collection = this.db.collection(composition.name)
+            queries[`${composition.name}`] = {
                 type: this.getType(composition.name),
-                args: { where: { type: this.getInputType(`${composition.name}Input`) } },
+                args: { where: { type: GraphQLNonNull(this.getInputType(`${composition.name}WhereInput`)) } },
                 resolve: (parent: any, args: any)=>{
                     return this.findOne(composition.name, args.where)
                 }
@@ -127,9 +168,17 @@ export default class StronoMongo extends StronoDbResolver{
 
             queries[`${composition.name}Many`] = {
                 type: GraphQLList(this.getType(composition.name)) ,
-                args: { where: { type: this.getInputType(`${composition.name}Input`) } },
+                args: { where: { type: this.getInputType(`${composition.name}WhereInput`) } },
                 resolve: (parent: any, args: any)=>{
                     return this.findMany(composition.name, args.where)
+                }
+            }
+
+            mutations[`create${composition.name}`] = {
+                type: this.getType(composition.name),
+                args: { data: { type: this.getInputType(`${composition.name}Input`) } },
+                resolve: (parent: any, args: any)=>{
+                    return this.createOne(composition.name, args.data)
                 }
             }
         })
@@ -137,6 +186,11 @@ export default class StronoMongo extends StronoDbResolver{
         this.RootQuery = new GraphQLObjectType({
             name: 'Query',
             fields: ()=>queries
+        })
+
+        this.RootMutation = new GraphQLObjectType({
+            name: 'Mutation',
+            fields: ()=>mutations
         })
         
     }
