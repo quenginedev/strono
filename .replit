@@ -1,0 +1,2 @@
+language = "deno"
+run = "deno run --allow-env --allow-net --allow-write --allow-read --allow-plugin --unstable ./src/server.ts"
